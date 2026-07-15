@@ -9,6 +9,9 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain_classic.chains import RetrievalQA
 st.write("VERSION: GROQ DEPLOYMENT - NO OLLAMA")
+import streamlit as st
+
+st.write("UPDATED VERSION 15 JULY")
 
 
 # -----------------------------
