@@ -2,9 +2,6 @@ streamlit
 pypdf
 langchain
 langchain-community
-langchain-ollama
+langchain-groq
 faiss-cpu
 sentence-transformers
-python-dotenv
-langchain-classic
-langchain-text-splitters
