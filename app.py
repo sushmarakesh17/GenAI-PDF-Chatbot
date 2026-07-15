@@ -1,4 +1,3 @@
-import os
 import streamlit as st
 
 from pypdf import PdfReader
@@ -8,7 +7,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
 from langchain_groq import ChatGroq
-from langchain.chains import RetrievalQA
+from langchain_classic.chains import RetrievalQA
 
 
 # -----------------------------
@@ -27,7 +26,11 @@ st.write("Upload a PDF and ask questions from it using AI")
 # -----------------------------
 # Groq API Key
 # -----------------------------
-groq_api_key = st.secrets["GROQ_API_KEY"]
+try:
+    groq_api_key = st.secrets["GROQ_API_KEY"]
+except:
+    st.error("GROQ_API_KEY is missing. Add it in Streamlit Secrets.")
+    st.stop()
 
 
 # -----------------------------
@@ -41,13 +44,23 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file:
 
+    # -----------------------------
     # Read PDF
+    # -----------------------------
     pdf_reader = PdfReader(uploaded_file)
 
     text = ""
 
     for page in pdf_reader.pages:
-        text += page.extract_text()
+        extracted_text = page.extract_text()
+
+        if extracted_text:
+            text += extracted_text
+
+
+    if not text.strip():
+        st.error("Could not extract text from this PDF.")
+        st.stop()
 
 
     # -----------------------------
@@ -64,22 +77,26 @@ if uploaded_file:
     # -----------------------------
     # Embeddings
     # -----------------------------
-    embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+    with st.spinner("Creating embeddings..."):
+
+        embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
 
 
-    # -----------------------------
-    # Vector Database
-    # -----------------------------
-    vectorstore = FAISS.from_texts(
-        chunks,
-        embedding=embeddings
-    )
+        # -----------------------------
+        # Vector Database
+        # -----------------------------
+        vectorstore = FAISS.from_texts(
+            chunks,
+            embedding=embeddings
+        )
 
 
     retriever = vectorstore.as_retriever(
-        search_kwargs={"k": 3}
+        search_kwargs={
+            "k": 3
+        }
     )
 
 
@@ -88,13 +105,13 @@ if uploaded_file:
     # -----------------------------
     llm = ChatGroq(
         groq_api_key=groq_api_key,
-        model_name="llama3-8b-8192",
+        model_name="llama-3.1-8b-instant",
         temperature=0
     )
 
 
     # -----------------------------
-    # Retrieval QA
+    # Retrieval QA Chain
     # -----------------------------
     qa = RetrievalQA.from_chain_type(
         llm=llm,
@@ -115,11 +132,15 @@ if uploaded_file:
 
         with st.spinner("Generating answer..."):
 
-            answer = qa.invoke(
+            response = qa.invoke(
                 {
                     "query": question
                 }
             )
 
+
         st.subheader("Answer")
-        st.write(answer["result"])
+
+        st.write(
+            response["result"]
+        )
