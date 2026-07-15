@@ -21,24 +21,20 @@ st.set_page_config(
 )
 
 st.title("📄 GenAI PDF Chatbot")
-st.write("Upload any PDF and chat with your document")
+st.write("Upload a PDF and ask questions from it using AI")
 
 
 # -----------------------------
-# Load Groq API Key
+# Groq API Key
 # -----------------------------
-try:
-    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
-except:
-    st.error("GROQ_API_KEY not found in Streamlit Secrets")
-    st.stop()
+groq_api_key = st.secrets["GROQ_API_KEY"]
 
 
 # -----------------------------
 # Upload PDF
 # -----------------------------
 uploaded_file = st.file_uploader(
-    "Upload PDF",
+    "Upload your PDF",
     type="pdf"
 )
 
@@ -54,7 +50,9 @@ if uploaded_file:
         text += page.extract_text()
 
 
-    # Split text into chunks
+    # -----------------------------
+    # Split Text
+    # -----------------------------
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=200
@@ -64,17 +62,19 @@ if uploaded_file:
 
 
     # -----------------------------
-    # Create Embeddings
+    # Embeddings
     # -----------------------------
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
 
-    # Create Vector Database
+    # -----------------------------
+    # Vector Database
+    # -----------------------------
     vectorstore = FAISS.from_texts(
         chunks,
-        embeddings
+        embedding=embeddings
     )
 
 
@@ -87,13 +87,15 @@ if uploaded_file:
     # Groq LLM
     # -----------------------------
     llm = ChatGroq(
-        groq_api_key=GROQ_API_KEY,
-        model_name="llama-3.1-8b-instant",
+        groq_api_key=groq_api_key,
+        model_name="llama3-8b-8192",
         temperature=0
     )
 
 
-    # Retrieval QA Chain
+    # -----------------------------
+    # Retrieval QA
+    # -----------------------------
     qa = RetrievalQA.from_chain_type(
         llm=llm,
         retriever=retriever,
@@ -111,7 +113,7 @@ if uploaded_file:
 
     if question:
 
-        with st.spinner("Thinking..."):
+        with st.spinner("Generating answer..."):
 
             answer = qa.invoke(
                 {
