@@ -3,6 +3,7 @@ pypdf
 langchain
 langchain-community
 langchain-classic
+langchain-text-splitters
 langchain-groq
 faiss-cpu
 sentence-transformers
